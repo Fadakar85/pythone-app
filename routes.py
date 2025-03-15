@@ -13,16 +13,24 @@ bp = Blueprint('main', __name__)
 
 @bp.route('/')
 def index():
-    search = request.args.get('search', '')
+    search = request.args.get('search', '').strip()
     category_id = request.args.get('category', '')
 
     query = Product.query
 
     if search:
-        query = query.filter(Product.name.ilike(f'%{search}%'))
+        # جستجو در نام و توضیحات محصول
+        search_filter = db.or_(
+            Product.name.ilike(f'%{search}%'),
+            Product.description.ilike(f'%{search}%')
+        )
+        query = query.filter(search_filter)
 
     if category_id:
         query = query.filter_by(category_id=category_id)
+        
+    # مرتب‌سازی بر اساس جدیدترین محصولات
+    query = query.order_by(Product.created_at.desc())
 
     products = query.all()
     categories = Category.query.all()
@@ -185,10 +193,16 @@ def product_detail(product_id):
 def init_categories():
     categories = [
         'ابزار برقی استوک',
-        'ابزار باغبانی استوک',
+        'ابزار باغبانی استوک', 
         'ابزار جوشکاری استوک',
         'ابزار مکانیکی استوک',
         'ابزار نجاری استوک',
+        'ابزار بنایی استوک',
+        'ابزار تراشکاری استوک',
+        'ابزار لوله‌کشی استوک',
+        'ابزار رنگ‌کاری استوک',
+        'تجهیزات ایمنی استوک',
+        'تجهیزات کارگاهی استوک',
         'سایر ابزارآلات استوک'
     ]
     
