@@ -79,7 +79,8 @@ def new_product():
 
             if not name or not price:
                 flash('لطفاً نام و قیمت محصول را وارد کنید')
-                return render_template('product_form.html')
+                categories = Category.query.all()
+                return render_template('product_form.html', categories=categories)
 
             try:
                 price = float(price)
