@@ -7,7 +7,7 @@ from models import User, Product
 from utils import save_image
 import os
 
-logging.basicConfig(level=logging.INFO) # Add this line to configure logging
+logging.basicConfig(level=logging.DEBUG) # Change to DEBUG for more detailed logs
 
 @app.route('/')
 def index():
@@ -107,7 +107,7 @@ def edit_product(id):
             product.price = float(request.form['price'])
 
             image = request.files.get('image')
-            if image:
+            if image and image.filename:
                 logging.info("Processing new image upload for product update")
                 image_path = save_image(image)
                 if image_path:
@@ -119,6 +119,9 @@ def edit_product(id):
                             logging.info(f"Old image removed: {old_image_path}")
                     product.image_path = image_path
                     logging.info(f"New image saved: {image_path}")
+                else:
+                    flash('خطا در آپلود تصویر جدید')
+                    return render_template('product_form.html', product=product)
 
             db.session.commit()
             logging.info("Product updated successfully")
