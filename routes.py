@@ -68,19 +68,34 @@ def new_product():
                     return render_template('product_form.html')
                 logging.info(f"Image saved successfully with path: {image_path}")
 
-            product = Product(
-                name=name,
-                description=description,
-                price=price,
-                image_path=image_path,
-                user_id=current_user.id
-            )
+            # Create new product
+            try:
+                product = Product(
+                    name=name,
+                    description=description,
+                    price=price,
+                    image_path=image_path,
+                    user_id=current_user.id
+                )
+                logging.info("Product object created")
 
-            db.session.add(product)
-            db.session.commit()
-            logging.info("Product created successfully")
-            flash('محصول با موفقیت ایجاد شد')
-            return redirect(url_for('dashboard'))
+                # Try to add to database
+                db.session.add(product)
+                logging.info("Product added to session")
+
+                # Try to commit
+                db.session.commit()
+                logging.info("Product committed to database successfully")
+
+                flash('محصول با موفقیت ایجاد شد')
+                return redirect(url_for('dashboard'))
+
+            except Exception as db_error:
+                db.session.rollback()
+                logging.error(f"Database error: {str(db_error)}")
+                logging.exception("Database error details:")
+                flash('خطا در ذخیره محصول در پایگاه داده')
+                return render_template('product_form.html')
 
         except Exception as e:
             db.session.rollback()
