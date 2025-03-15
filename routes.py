@@ -1,61 +1,67 @@
 import os
 import logging
-from flask import render_template, redirect, url_for, flash, request
+from flask import render_template, redirect, url_for, flash, request, Blueprint
 from flask_login import login_user, logout_user, login_required, current_user
 from urllib.parse import urlparse
-from app import app, db
+from app import db
 from models import User, Product
 from utils import save_image
 
 logging.basicConfig(level=logging.DEBUG)
 
-@app.route('/')
+# Create blueprint
+bp = Blueprint('main', __name__)
+
+@bp.route('/')
 def index():
     products = Product.query.all()
     return render_template('products.html', products=products)
 
-@app.route('/login', methods=['GET', 'POST'])
+@bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for('index'))
+        return redirect(url_for('main.index'))
 
     if request.method == 'POST':
         user = User.query.filter_by(username=request.form['username']).first()
         if user is None or not user.check_password(request.form['password']):
             flash('نام کاربری یا رمز عبور نامعتبر است')
-            return redirect(url_for('login'))
+            return redirect(url_for('main.login'))
 
         login_user(user)
         next_page = request.args.get('next')
         if not next_page or urlparse(next_page).netloc != '':
-            next_page = url_for('index')
+            next_page = url_for('main.index')
         return redirect(next_page)
 
     return render_template('login.html')
 
-@app.route('/logout')
+@bp.route('/logout')
 def logout():
     logout_user()
-    return redirect(url_for('index'))
+    return redirect(url_for('main.index'))
 
-@app.route('/dashboard')
+@bp.route('/dashboard')
 @login_required
 def dashboard():
     products = Product.query.filter_by(user_id=current_user.id).all()
     return render_template('dashboard.html', products=products)
 
-@app.route('/product/new', methods=['GET', 'POST'])
+@bp.route('/product/new', methods=['GET', 'POST'])
 @login_required
 def new_product():
     if request.method == 'POST':
-        logging.info("Received new product form submission")
+        logging.info("Received POST request for new product")
+        logging.info(f"Form data: {request.form}")
+        logging.info(f"Files: {request.files}")
+
         try:
             # Get form data
             name = request.form.get('name')
             description = request.form.get('description')
             price = request.form.get('price')
 
-            logging.info(f"Form data received - Name: {name}, Description: {description}, Price: {price}")
+            logging.info(f"Parsed form data - Name: {name}, Description: {description}, Price: {price}")
 
             if not name or not price:
                 flash('لطفاً نام و قیمت محصول را وارد کنید')
@@ -89,40 +95,46 @@ def new_product():
                     image_path=image_path,
                     user_id=current_user.id
                 )
+                logging.info("Product object created")
 
+                # Try to add to database
                 db.session.add(product)
+                logging.info("Product added to session")
+
+                # Try to commit
                 db.session.commit()
-                logging.info(f"Product created successfully with ID: {product.id}")
+                logging.info(f"Product committed to database successfully with ID: {product.id}")
 
                 flash('محصول با موفقیت ایجاد شد')
-                return redirect(url_for('dashboard'))
+                return redirect(url_for('main.dashboard'))
 
             except Exception as db_error:
                 db.session.rollback()
                 logging.error(f"Database error while creating product: {str(db_error)}")
-                flash('خطا در ذخیره محصول')
+                logging.exception("Database error details:")
+                flash('خطا در ذخیره محصول در پایگاه داده')
                 return render_template('product_form.html')
 
         except Exception as e:
             logging.error(f"General error in new_product route: {str(e)}")
+            logging.exception("Full error details:")
             flash('خطا در ایجاد محصول')
             return render_template('product_form.html')
 
     return render_template('product_form.html')
 
-@app.route('/product/<int:id>/edit', methods=['GET', 'POST'])
+@bp.route('/product/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_product(id):
     product = Product.query.get_or_404(id)
     if product.user_id != current_user.id:
         flash('شما اجازه ویرایش این محصول را ندارید')
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('main.dashboard'))
 
     if request.method == 'POST':
         try:
             product.name = request.form.get('name')
             product.description = request.form.get('description')
-
             try:
                 product.price = float(request.form.get('price'))
             except ValueError:
@@ -143,7 +155,7 @@ def edit_product(id):
 
             db.session.commit()
             flash('محصول با موفقیت به‌روزرسانی شد')
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('main.dashboard'))
 
         except Exception as e:
             db.session.rollback()
@@ -153,13 +165,13 @@ def edit_product(id):
 
     return render_template('product_form.html', product=product)
 
-@app.route('/product/<int:id>/delete', methods=['POST'])
+@bp.route('/product/<int:id>/delete', methods=['POST'])
 @login_required
 def delete_product(id):
     product = Product.query.get_or_404(id)
     if product.user_id != current_user.id:
         flash('شما اجازه حذف این محصول را ندارید')
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('main.dashboard'))
 
     try:
         if product.image_path:
@@ -176,12 +188,12 @@ def delete_product(id):
         logging.error(f"Error deleting product: {str(e)}")
         flash('خطا در حذف محصول')
 
-    return redirect(url_for('dashboard'))
+    return redirect(url_for('main.dashboard'))
 
-@app.route('/signup', methods=['GET', 'POST'])
+@bp.route('/signup', methods=['GET', 'POST'])
 def signup():
     if current_user.is_authenticated:
-        return redirect(url_for('index'))
+        return redirect(url_for('main.index'))
 
     if request.method == 'POST':
         try:
@@ -207,7 +219,7 @@ def signup():
             db.session.commit()
 
             flash('ثبت‌نام با موفقیت انجام شد. اکنون می‌توانید وارد شوید')
-            return redirect(url_for('login'))
+            return redirect(url_for('main.login'))
 
         except Exception as e:
             db.session.rollback()

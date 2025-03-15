@@ -8,7 +8,7 @@
                 <h4 class="mb-0">{% if product %}ویرایش محصول{% else %}محصول جدید{% endif %}</h4>
             </div>
             <div class="card-body">
-                <form method="POST" enctype="multipart/form-data" id="productForm">
+                <form method="POST" action="{{ url_for('main.new_product') if not product else url_for('main.edit_product', id=product.id) }}" enctype="multipart/form-data" id="productForm">
                     <div class="mb-3">
                         <label for="name" class="form-label">نام محصول</label>
                         <input type="text" class="form-control" id="name" name="name" 
@@ -33,13 +33,13 @@
                         <div class="mt-2">
                             <p>تصویر فعلی:</p>
                             <img src="{{ url_for('static', filename='uploads/' + product.image_path) }}" 
-                                 class="img-thumbnail" alt="تصویر فعلی" style="max-width: 200px;">
+                                  class="img-thumbnail" alt="تصویر فعلی" style="max-width: 200px;">
                         </div>
                         {% endif %}
                     </div>
                     <div class="d-flex justify-content-between">
                         <button type="submit" class="btn btn-primary">ذخیره محصول</button>
-                        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">انصراف</a>
+                        <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary">انصراف</a>
                     </div>
                 </form>
             </div>
