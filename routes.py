@@ -161,3 +161,42 @@ def delete_product(id):
         flash('خطا در حذف محصول')
 
     return redirect(url_for('dashboard'))
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        try:
+            username = request.form.get('username')
+            email = request.form.get('email')
+            password = request.form.get('password')
+
+            if not username or not email or not password:
+                flash('لطفاً تمام فیلدها را پر کنید')
+                return render_template('signup.html')
+
+            if User.query.filter_by(username=username).first():
+                flash('این نام کاربری قبلاً استفاده شده است')
+                return render_template('signup.html')
+
+            if User.query.filter_by(email=email).first():
+                flash('این ایمیل قبلاً استفاده شده است')
+                return render_template('signup.html')
+
+            user = User(username=username, email=email)
+            user.set_password(password)
+            db.session.add(user)
+            db.session.commit()
+
+            flash('ثبت‌نام با موفقیت انجام شد. اکنون می‌توانید وارد شوید')
+            return redirect(url_for('login'))
+
+        except Exception as e:
+            db.session.rollback()
+            logging.error(f"Error in signup: {str(e)}")
+            flash('خطا در ثبت‌نام. لطفاً دوباره تلاش کنید')
+            return render_template('signup.html')
+
+    return render_template('signup.html')
