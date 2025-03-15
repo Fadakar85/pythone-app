@@ -48,10 +48,14 @@ def dashboard():
 @login_required
 def new_product():
     if request.method == 'POST':
+        logging.info("Received new product form submission")
         try:
+            # Get form data
             name = request.form.get('name')
             description = request.form.get('description')
             price = request.form.get('price')
+
+            logging.info(f"Form data received - Name: {name}, Description: {description}, Price: {price}")
 
             if not name or not price:
                 flash('لطفاً نام و قیمت محصول را وارد کنید')
@@ -65,30 +69,42 @@ def new_product():
 
             # Handle image upload
             image_path = None
-            image = request.files.get('image')
-            if image and image.filename:
-                image_path = save_image(image)
-                if not image_path:
-                    flash('خطا در آپلود تصویر')
-                    return render_template('product_form.html')
+            if 'image' in request.files:
+                image = request.files['image']
+                if image and image.filename:
+                    logging.info(f"Processing image upload: {image.filename}")
+                    image_path = save_image(image)
+                    if not image_path:
+                        logging.error("Image upload failed")
+                        flash('خطا در آپلود تصویر')
+                        return render_template('product_form.html')
+                    logging.info(f"Image saved successfully: {image_path}")
 
             # Create new product
-            product = Product(
-                name=name,
-                description=description,
-                price=price,
-                image_path=image_path,
-                user_id=current_user.id
-            )
+            try:
+                product = Product(
+                    name=name,
+                    description=description,
+                    price=price,
+                    image_path=image_path,
+                    user_id=current_user.id
+                )
 
-            db.session.add(product)
-            db.session.commit()
-            flash('محصول با موفقیت ایجاد شد')
-            return redirect(url_for('dashboard'))
+                db.session.add(product)
+                db.session.commit()
+                logging.info(f"Product created successfully with ID: {product.id}")
+
+                flash('محصول با موفقیت ایجاد شد')
+                return redirect(url_for('dashboard'))
+
+            except Exception as db_error:
+                db.session.rollback()
+                logging.error(f"Database error while creating product: {str(db_error)}")
+                flash('خطا در ذخیره محصول')
+                return render_template('product_form.html')
 
         except Exception as e:
-            db.session.rollback()
-            logging.error(f"Error creating product: {str(e)}")
+            logging.error(f"General error in new_product route: {str(e)}")
             flash('خطا در ایجاد محصول')
             return render_template('product_form.html')
 

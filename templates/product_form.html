@@ -5,10 +5,10 @@
     <div class="col-md-8">
         <div class="card">
             <div class="card-header">
-                <h4 class="mb-0">{% if product %}ویرایش{% else %}محصول جدید{% endif %}</h4>
+                <h4 class="mb-0">{% if product %}ویرایش محصول{% else %}محصول جدید{% endif %}</h4>
             </div>
             <div class="card-body">
-                <form method="POST" enctype="multipart/form-data">
+                <form method="POST" enctype="multipart/form-data" id="productForm">
                     <div class="mb-3">
                         <label for="name" class="form-label">نام محصول</label>
                         <input type="text" class="form-control" id="name" name="name" 
@@ -27,15 +27,15 @@
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label d-block">تصویر محصول</label>
-                        <div class="image-upload-container">
-                            <input type="file" class="form-control mb-2" id="image" name="image" 
-                                   accept="image/*" onchange="previewImage(this);">
-                            <div id="imagePreview" class="mt-2 text-center {% if not product or not product.image_path %}d-none{% endif %}">
-                                <img src="{% if product and product.image_path %}{{ url_for('static', filename='uploads/' + product.image_path) }}{% endif %}"
-                                     class="img-thumbnail preview-image" alt="پیش‌نمایش تصویر">
-                            </div>
+                        <label for="image" class="form-label">تصویر محصول</label>
+                        <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                        {% if product and product.image_path %}
+                        <div class="mt-2">
+                            <p>تصویر فعلی:</p>
+                            <img src="{{ url_for('static', filename='uploads/' + product.image_path) }}" 
+                                 class="img-thumbnail" alt="تصویر فعلی" style="max-width: 200px;">
                         </div>
+                        {% endif %}
                     </div>
                     <div class="d-flex justify-content-between">
                         <button type="submit" class="btn btn-primary">ذخیره محصول</button>
@@ -50,22 +50,16 @@
 
 {% block scripts %}
 <script>
-function previewImage(input) {
-    const preview = document.getElementById('imagePreview');
-    const previewImg = preview.querySelector('img');
+document.getElementById('productForm').onsubmit = function(e) {
+    const name = document.getElementById('name').value;
+    const price = document.getElementById('price').value;
 
-    if (input.files && input.files[0]) {
-        const reader = new FileReader();
-
-        reader.onload = function(e) {
-            previewImg.src = e.target.result;
-            preview.classList.remove('d-none');
-        }
-
-        reader.readAsDataURL(input.files[0]);
-    } else {
-        preview.classList.add('d-none');
+    if (!name || !price) {
+        e.preventDefault();
+        alert('لطفاً نام و قیمت محصول را وارد کنید');
+        return false;
     }
-}
+    return true;
+};
 </script>
 {% endblock %}
