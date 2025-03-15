@@ -51,6 +51,7 @@ def create_app():
 
         # Create all database tables
         try:
+            db.drop_all()
             db.create_all()
             logging.info("Database tables created successfully")
         except Exception as e:
