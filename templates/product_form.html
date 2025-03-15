@@ -9,7 +9,7 @@
                 <h4 class="mb-0">{% if product %}ویرایش محصول{% else %}محصول جدید{% endif %}</h4>
             </div>
             <div class="card-body">
-                <form method="POST" enctype="multipart/form-data" id="productForm">
+                <form method="POST" enctype="multipart/form-data" id="productForm" action="{{ url_for('main.new_product') }}">
                     <div class="mb-3">
                         <label for="name" class="form-label">نام محصول</label>
                         <input type="text" class="form-control" id="name" name="name" 
@@ -71,12 +71,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (imageInput && previewContainer) {
-        imageInput.onchange = function(e) {
+        imageInput.addEventListener('change', function(e) {
+            previewContainer.innerHTML = '';
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    previewContainer.innerHTML = '';
                     const preview = document.createElement('img');
                     preview.src = e.target.result;
                     preview.style.maxWidth = '200px';
@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 };
                 reader.readAsDataURL(file);
             }
-        };
+        });
     }
 });
 </script>
