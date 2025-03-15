@@ -217,6 +217,11 @@ def send_message(product_id):
     flash('پیام شما با موفقیت ارسال شد')
     return redirect(url_for('main.index'))
 
+@bp.route('/product/<int:product_id>')
+def product_detail(product_id):
+    product = Product.query.get_or_404(product_id)
+    return render_template('product_detail.html', product=product)
+
 @bp.route('/signup', methods=['GET', 'POST'])
 def signup():
     if current_user.is_authenticated:
