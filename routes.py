@@ -206,6 +206,12 @@ def init_categories():
     
     return redirect(url_for('main.index'))
 
+@bp.route('/messages')
+@login_required
+def messages():
+    # Get messages for the current user
+    return render_template('messages.html')
+
 @bp.route('/signup', methods=['GET', 'POST'])
 def signup():
     if current_user.is_authenticated:
