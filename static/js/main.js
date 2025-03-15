@@ -2,6 +2,26 @@
 document.addEventListener('DOMContentLoaded', () => {
     feather.replace();
 
+let deferredPrompt;
+const installBtn = document.getElementById('installBtn');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installBtn.classList.remove('d-none');
+    
+    installBtn.addEventListener('click', async () => {
+        if (deferredPrompt !== null) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                deferredPrompt = null;
+                installBtn.classList.add('d-none');
+            }
+        }
+    });
+});
+
     // Preview image before upload
     const imageInput = document.getElementById('image');
     if (imageInput) {
