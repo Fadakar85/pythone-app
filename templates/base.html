@@ -29,6 +29,18 @@
                     </li>
                     {% endif %}
                 </ul>
+                <form class="d-flex mx-3" action="{{ url_for('main.index') }}" method="GET">
+                    <select name="category" class="form-select me-2">
+                        <option value="">همه دسته‌ها</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}" {% if request.args.get('category')|int == category.id %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <input class="form-control me-2" type="search" placeholder="جستجو..." name="search" value="{{ request.args.get('search', '') }}">
+                    <button class="btn btn-outline-success" type="submit">جستجو</button>
+                </form>
                 <ul class="navbar-nav">
                     {% if current_user.is_authenticated %}
                     <li class="nav-item">

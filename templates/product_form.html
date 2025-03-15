@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 
 {% block content %}
@@ -36,6 +35,17 @@
                                  class="img-thumbnail" alt="تصویر محصول" style="max-width: 200px;">
                             {% endif %}
                         </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="category_id" class="form-label">دسته‌بندی</label>
+                        <select class="form-control" id="category_id" name="category_id">
+                            <option value="">بدون دسته‌بندی</option>
+                            {% for category in categories %}
+                            <option value="{{ category.id }}" {% if product and product.category_id == category.id %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
                     </div>
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary">

@@ -4,18 +4,29 @@ from flask import render_template, redirect, url_for, flash, request, Blueprint
 from flask_login import login_user, logout_user, login_required, current_user
 from urllib.parse import urlparse
 from app import db
-from models import User, Product, Message
+from models import User, Product, Category
 from utils import save_image
 
 logging.basicConfig(level=logging.DEBUG)
 
-# Create blueprint
 bp = Blueprint('main', __name__)
 
 @bp.route('/')
 def index():
-    products = Product.query.all()
-    return render_template('products.html', products=products)
+    search = request.args.get('search', '')
+    category_id = request.args.get('category', '')
+
+    query = Product.query
+
+    if search:
+        query = query.filter(Product.name.ilike(f'%{search}%'))
+
+    if category_id:
+        query = query.filter_by(category_id=category_id)
+
+    products = query.all()
+    categories = Category.query.all()
+    return render_template('products.html', products=products, categories=categories)
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -45,23 +56,18 @@ def logout():
 @login_required
 def dashboard():
     products = Product.query.filter_by(user_id=current_user.id).all()
-    return render_template('dashboard.html', products=products)
+    categories = Category.query.all()
+    return render_template('dashboard.html', products=products, categories=categories)
 
 @bp.route('/product/new', methods=['GET', 'POST'])
 @login_required
 def new_product():
     if request.method == 'POST':
-        logging.info("Received POST request for new product")
-        logging.info(f"Form data: {request.form}")
-        logging.info(f"Files: {request.files}")
-
         try:
-            # Get form data
             name = request.form.get('name')
             description = request.form.get('description')
             price = request.form.get('price')
-
-            logging.info(f"Parsed form data - Name: {name}, Description: {description}, Price: {price}")
+            category_id = request.form.get('category_id')
 
             if not name or not price:
                 flash('لطفاً نام و قیمت محصول را وارد کنید')
@@ -73,55 +79,35 @@ def new_product():
                 flash('لطفاً قیمت معتبر وارد کنید')
                 return render_template('product_form.html')
 
-            # Handle image upload
             image_path = None
             if 'image' in request.files:
                 image = request.files['image']
                 if image and image.filename:
-                    logging.info(f"Processing image upload: {image.filename}")
                     image_path = save_image(image)
-                    if not image_path:
-                        logging.error("Image upload failed")
-                        flash('خطا در آپلود تصویر')
-                        return render_template('product_form.html')
-                    logging.info(f"Image saved successfully: {image_path}")
 
-            # Create new product
-            try:
-                product = Product(
-                    name=name,
-                    description=description,
-                    price=price,
-                    image_path=image_path,
-                    user_id=current_user.id
-                )
-                logging.info("Product object created")
+            product = Product(
+                name=name,
+                description=description,
+                price=price,
+                image_path=image_path,
+                user_id=current_user.id,
+                category_id=category_id
+            )
 
-                # Try to add to database
-                db.session.add(product)
-                logging.info("Product added to session")
+            db.session.add(product)
+            db.session.commit()
 
-                # Try to commit
-                db.session.commit()
-                logging.info(f"Product committed to database successfully with ID: {product.id}")
-
-                flash('محصول با موفقیت ایجاد شد')
-                return redirect(url_for('main.dashboard'))
-
-            except Exception as db_error:
-                db.session.rollback()
-                logging.error(f"Database error while creating product: {str(db_error)}")
-                logging.exception("Database error details:")
-                flash('خطا در ذخیره محصول در پایگاه داده')
-                return render_template('product_form.html')
+            flash('محصول با موفقیت ایجاد شد')
+            return redirect(url_for('main.dashboard'))
 
         except Exception as e:
-            logging.error(f"General error in new_product route: {str(e)}")
-            logging.exception("Full error details:")
+            db.session.rollback()
+            logging.error(f"Error in new_product: {str(e)}")
             flash('خطا در ایجاد محصول')
             return render_template('product_form.html')
 
-    return render_template('product_form.html')
+    categories = Category.query.all()
+    return render_template('product_form.html', categories=categories)
 
 @bp.route('/product/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -135,20 +121,19 @@ def edit_product(id):
         try:
             product.name = request.form.get('name')
             product.description = request.form.get('description')
+            product.category_id = request.form.get('category_id')
             try:
                 product.price = float(request.form.get('price'))
             except ValueError:
                 flash('لطفاً قیمت معتبر وارد کنید')
                 return render_template('product_form.html', product=product)
 
-            # Handle image upload
             image = request.files.get('image')
             if image and image.filename:
                 new_image_path = save_image(image)
                 if new_image_path:
-                    # Remove old image if exists
                     if product.image_path:
-                        old_image_path = os.path.join(app.config['UPLOAD_FOLDER'], product.image_path)
+                        old_image_path = os.path.join('static/uploads', product.image_path)
                         if os.path.exists(old_image_path):
                             os.remove(old_image_path)
                     product.image_path = new_image_path
@@ -161,9 +146,9 @@ def edit_product(id):
             db.session.rollback()
             logging.error(f"Error updating product: {str(e)}")
             flash('خطا در به‌روزرسانی محصول')
-            return render_template('product_form.html', product=product)
 
-    return render_template('product_form.html', product=product)
+    categories = Category.query.all()
+    return render_template('product_form.html', product=product, categories=categories)
 
 @bp.route('/product/<int:id>/delete', methods=['POST'])
 @login_required
@@ -175,7 +160,7 @@ def delete_product(id):
 
     try:
         if product.image_path:
-            image_path = os.path.join(app.config['UPLOAD_FOLDER'], product.image_path)
+            image_path = os.path.join('static/uploads', product.image_path)
             if os.path.exists(image_path):
                 os.remove(image_path)
 
@@ -190,37 +175,11 @@ def delete_product(id):
 
     return redirect(url_for('main.dashboard'))
 
-@bp.route('/messages')
-@login_required
-def messages():
-    received_messages = Message.query.filter_by(receiver_id=current_user.id).order_by(Message.created_at.desc()).all()
-    sent_messages = Message.query.filter_by(sender_id=current_user.id).order_by(Message.created_at.desc()).all()
-    return render_template('messages.html', received_messages=received_messages, sent_messages=sent_messages)
-
-@bp.route('/send_message/<int:product_id>', methods=['POST'])
-@login_required
-def send_message(product_id):
-    product = Product.query.get_or_404(product_id)
-    content = request.form.get('content')
-    if not content:
-        flash('متن پیام نمی‌تواند خالی باشد')
-        return redirect(url_for('main.index'))
-    
-    message = Message(
-        content=content,
-        sender_id=current_user.id,
-        receiver_id=product.user_id,
-        product_id=product_id
-    )
-    db.session.add(message)
-    db.session.commit()
-    flash('پیام شما با موفقیت ارسال شد')
-    return redirect(url_for('main.index'))
-
 @bp.route('/product/<int:product_id>')
 def product_detail(product_id):
     product = Product.query.get_or_404(product_id)
-    return render_template('product_detail.html', product=product)
+    categories = Category.query.all()
+    return render_template('product_detail.html', product=product, categories=categories)
 
 @bp.route('/signup', methods=['GET', 'POST'])
 def signup():
