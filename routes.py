@@ -181,6 +181,31 @@ def product_detail(product_id):
     categories = Category.query.all()
     return render_template('product_detail.html', product=product, categories=categories)
 
+@bp.route('/init-categories')
+def init_categories():
+    categories = [
+        'ابزار برقی استوک',
+        'ابزار باغبانی استوک',
+        'ابزار جوشکاری استوک',
+        'ابزار مکانیکی استوک',
+        'ابزار نجاری استوک',
+        'سایر ابزارآلات استوک'
+    ]
+    
+    for cat_name in categories:
+        if not Category.query.filter_by(name=cat_name).first():
+            category = Category(name=cat_name)
+            db.session.add(category)
+    
+    try:
+        db.session.commit()
+        flash('دسته‌بندی‌ها با موفقیت ایجاد شدند')
+    except Exception as e:
+        db.session.rollback()
+        flash('خطا در ایجاد دسته‌بندی‌ها')
+    
+    return redirect(url_for('main.index'))
+
 @bp.route('/signup', methods=['GET', 'POST'])
 def signup():
     if current_user.is_authenticated:
