@@ -9,7 +9,7 @@
                 <h4 class="mb-0">{% if product %}ویرایش محصول{% else %}محصول جدید{% endif %}</h4>
             </div>
             <div class="card-body">
-                <form method="POST" enctype="multipart/form-data" id="productForm" action="{{ url_for('main.new_product') }}">
+                <form method="POST" enctype="multipart/form-data" id="productForm">
                     <div class="mb-3">
                         <label for="name" class="form-label">نام محصول</label>
                         <input type="text" class="form-control" id="name" name="name" 
@@ -56,19 +56,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const imageInput = document.getElementById('image');
     const previewContainer = document.getElementById('imagePreview');
 
-    if (form) {
-        form.onsubmit = function(e) {
-            const name = document.getElementById('name').value.trim();
-            const price = document.getElementById('price').value.trim();
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const name = document.getElementById('name').value.trim();
+        const price = document.getElementById('price').value.trim();
 
-            if (!name || !price) {
-                e.preventDefault();
-                alert('لطفاً نام و قیمت محصول را وارد کنید');
-                return false;
-            }
-            return true;
-        };
-    }
+        if (!name || !price) {
+            alert('لطفاً نام و قیمت محصول را وارد کنید');
+            return false;
+        }
+
+        this.submit();
+    });
 
     if (imageInput && previewContainer) {
         imageInput.addEventListener('change', function(e) {
