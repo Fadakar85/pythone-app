@@ -51,34 +51,38 @@
 
 {% block scripts %}
 <script>
-document.getElementById('productForm').onsubmit = function(e) {
-    const name = document.getElementById('name').value;
-    const price = document.getElementById('price').value;
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('productForm');
+    const imageInput = document.getElementById('image');
+    const previewContainer = document.getElementById('imagePreview');
 
-    if (!name || !price) {
-        e.preventDefault();
-        alert('لطفاً نام و قیمت محصول را وارد کنید');
-        return false;
-    }
-    return true;
-};
+    form.onsubmit = function(e) {
+        const name = document.getElementById('name').value;
+        const price = document.getElementById('price').value;
 
-document.getElementById('image').onchange = function(e) {
-    const file = e.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const preview = document.createElement('img');
-            preview.src = e.target.result;
-            preview.style.maxWidth = '200px';
-            preview.className = 'img-thumbnail mt-2';
+        if (!name || !price) {
+            e.preventDefault();
+            alert('لطفاً نام و قیمت محصول را وارد کنید');
+            return false;
+        }
+        return true;
+    };
 
-            const previewContainer = document.getElementById('imagePreview');
-            previewContainer.innerHTML = '';
-            previewContainer.appendChild(preview);
-        };
-        reader.readAsDataURL(file);
-    }
-};
+    imageInput.onchange = function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewContainer.innerHTML = '';
+                const preview = document.createElement('img');
+                preview.src = e.target.result;
+                preview.style.maxWidth = '200px';
+                preview.className = 'img-thumbnail mt-2';
+                previewContainer.appendChild(preview);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+});
 </script>
 {% endblock %}
