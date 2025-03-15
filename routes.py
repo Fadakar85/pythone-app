@@ -4,7 +4,7 @@ from flask import render_template, redirect, url_for, flash, request, Blueprint
 from flask_login import login_user, logout_user, login_required, current_user
 from urllib.parse import urlparse
 from app import db
-from models import User, Product
+from models import User, Product, Message
 from utils import save_image
 
 logging.basicConfig(level=logging.DEBUG)
