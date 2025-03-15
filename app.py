@@ -24,11 +24,14 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
     "pool_pre_ping": True,
 }
-app.config["UPLOAD_FOLDER"] = os.path.join(app.root_path, "static/uploads")
+
+# Configure upload settings
+app.config["UPLOAD_FOLDER"] = os.path.join(app.root_path, "static", "uploads")
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max file size
 
 # Ensure upload directory exists
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+logging.info(f"Upload folder created at: {app.config['UPLOAD_FOLDER']}")
 
 # Initialize extensions
 db.init_app(app)
