@@ -20,26 +20,52 @@
                     </div>
                     <div class="mb-3">
                         <label for="price" class="form-label">قیمت</label>
-                        <input type="number" class="form-control" id="price" name="price" 
-                               value="{{ product.price if product else '' }}" step="0.01" required>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="price" name="price" 
+                                   value="{{ product.price if product else '' }}" step="0.01" required>
+                            <span class="input-group-text">تومان</span>
+                        </div>
                     </div>
                     <div class="mb-3">
-                        <label for="image" class="form-label">تصویر محصول</label>
-                        <input type="file" class="form-control" id="image" name="image" accept="image/*">
-                        {% if product and product.image_path %}
-                        <div class="mt-2">
-                            <p>تصویر فعلی:</p>
-                            <img src="{{ url_for('static', filename='uploads/' + product.image_path) }}" 
-                                 alt="تصویر فعلی" class="img-thumbnail" style="max-width: 200px;">
+                        <label class="form-label d-block">تصویر محصول</label>
+                        <div class="image-upload-container">
+                            <input type="file" class="form-control mb-2" id="image" name="image" 
+                                   accept="image/*" onchange="previewImage(this);">
+                            <div id="imagePreview" class="mt-2 text-center {% if not product or not product.image_path %}d-none{% endif %}">
+                                <img src="{% if product and product.image_path %}{{ url_for('static', filename='uploads/' + product.image_path) }}{% endif %}"
+                                     class="img-thumbnail preview-image" alt="پیش‌نمایش تصویر">
+                            </div>
                         </div>
-                        {% endif %}
-                        <div id="image-preview" class="mt-2"></div>
                     </div>
-                    <button type="submit" class="btn btn-primary">ذخیره محصول</button>
-                    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">انصراف</a>
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" class="btn btn-primary">ذخیره محصول</button>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">انصراف</a>
+                    </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function previewImage(input) {
+    const preview = document.getElementById('imagePreview');
+    const previewImg = preview.querySelector('img');
+
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            previewImg.src = e.target.result;
+            preview.classList.remove('d-none');
+        }
+
+        reader.readAsDataURL(input.files[0]);
+    } else {
+        preview.classList.add('d-none');
+    }
+}
+</script>
 {% endblock %}

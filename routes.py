@@ -1,3 +1,4 @@
+import os
 import logging
 from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
@@ -5,9 +6,8 @@ from urllib.parse import urlparse
 from app import app, db
 from models import User, Product
 from utils import save_image
-import os
 
-logging.basicConfig(level=logging.DEBUG) # Change to DEBUG for more detailed logs
+logging.basicConfig(level=logging.DEBUG)
 
 @app.route('/')
 def index():
@@ -49,59 +49,50 @@ def dashboard():
 def new_product():
     if request.method == 'POST':
         try:
-            logging.info("Starting new product creation")
-            name = request.form['name']
-            description = request.form['description']
-            price = float(request.form['price'])
-            image = request.files.get('image')
+            # Get form data
+            name = request.form.get('name')
+            description = request.form.get('description')
+            price = request.form.get('price')
 
-            logging.info(f"Received product data - Name: {name}, Image: {image.filename if image else 'No image'}")
+            # Validate required fields
+            if not name or not price:
+                flash('لطفاً نام و قیمت محصول را وارد کنید')
+                return render_template('product_form.html')
+
+            try:
+                price = float(price)
+            except ValueError:
+                flash('لطفاً قیمت معتبر وارد کنید')
+                return render_template('product_form.html')
 
             # Handle image upload
+            image = request.files.get('image')
             image_path = None
-            if image:
-                logging.info("Processing image upload")
+            if image and image.filename:
                 image_path = save_image(image)
                 if not image_path:
-                    logging.error("Image upload failed")
-                    flash('خطا در آپلود تصویر. لطفا مطمئن شوید که فایل معتبر است')
+                    flash('خطا در آپلود تصویر. لطفاً دوباره تلاش کنید')
                     return render_template('product_form.html')
-                logging.info(f"Image saved successfully with path: {image_path}")
 
-            # Create new product
-            try:
-                product = Product(
-                    name=name,
-                    description=description,
-                    price=price,
-                    image_path=image_path,
-                    user_id=current_user.id
-                )
-                logging.info("Product object created")
+            # Create product
+            product = Product(
+                name=name,
+                description=description,
+                price=price,
+                image_path=image_path,
+                user_id=current_user.id
+            )
 
-                # Try to add to database
-                db.session.add(product)
-                logging.info("Product added to session")
+            db.session.add(product)
+            db.session.commit()
 
-                # Try to commit
-                db.session.commit()
-                logging.info("Product committed to database successfully")
-
-                flash('محصول با موفقیت ایجاد شد')
-                return redirect(url_for('dashboard'))
-
-            except Exception as db_error:
-                db.session.rollback()
-                logging.error(f"Database error: {str(db_error)}")
-                logging.exception("Database error details:")
-                flash('خطا در ذخیره محصول در پایگاه داده')
-                return render_template('product_form.html')
+            flash('محصول با موفقیت ایجاد شد')
+            return redirect(url_for('dashboard'))
 
         except Exception as e:
             db.session.rollback()
             logging.error(f"Error creating product: {str(e)}")
-            logging.exception("Full error traceback:")
-            flash('خطا در ایجاد محصول. لطفا دوباره تلاش کنید')
+            flash('خطا در ایجاد محصول. لطفاً دوباره تلاش کنید')
             return render_template('product_form.html')
 
     return render_template('product_form.html')
@@ -116,38 +107,39 @@ def edit_product(id):
 
     if request.method == 'POST':
         try:
-            logging.info(f"Starting product update for ID: {id}")
-            product.name = request.form['name']
-            product.description = request.form['description']
-            product.price = float(request.form['price'])
+            # Update basic info
+            product.name = request.form.get('name')
+            product.description = request.form.get('description')
 
+            try:
+                product.price = float(request.form.get('price'))
+            except ValueError:
+                flash('لطفاً قیمت معتبر وارد کنید')
+                return render_template('product_form.html', product=product)
+
+            # Handle image update
             image = request.files.get('image')
             if image and image.filename:
-                logging.info("Processing new image upload for product update")
-                image_path = save_image(image)
-                if image_path:
-                    # Remove old image if it exists
+                new_image_path = save_image(image)
+                if new_image_path:
+                    # Remove old image if exists
                     if product.image_path:
                         old_image_path = os.path.join(app.config['UPLOAD_FOLDER'], product.image_path)
                         if os.path.exists(old_image_path):
                             os.remove(old_image_path)
-                            logging.info(f"Old image removed: {old_image_path}")
-                    product.image_path = image_path
-                    logging.info(f"New image saved: {image_path}")
+                    product.image_path = new_image_path
                 else:
                     flash('خطا در آپلود تصویر جدید')
                     return render_template('product_form.html', product=product)
 
             db.session.commit()
-            logging.info("Product updated successfully")
             flash('محصول با موفقیت به‌روزرسانی شد')
             return redirect(url_for('dashboard'))
 
         except Exception as e:
             db.session.rollback()
             logging.error(f"Error updating product: {str(e)}")
-            logging.exception("Full error traceback:")
-            flash('خطا در به‌روزرسانی محصول. لطفا دوباره تلاش کنید')
+            flash('خطا در به‌روزرسانی محصول. لطفاً دوباره تلاش کنید')
             return render_template('product_form.html', product=product)
 
     return render_template('product_form.html', product=product)
@@ -161,22 +153,19 @@ def delete_product(id):
         return redirect(url_for('dashboard'))
 
     try:
-        logging.info(f"Starting product deletion for ID: {id}")
-        # Remove the image file if it exists
+        # Remove image file if exists
         if product.image_path:
             image_path = os.path.join(app.config['UPLOAD_FOLDER'], product.image_path)
             if os.path.exists(image_path):
                 os.remove(image_path)
-                logging.info(f"Image file removed: {image_path}")
 
         db.session.delete(product)
         db.session.commit()
-        logging.info("Product deleted successfully")
         flash('محصول با موفقیت حذف شد')
+
     except Exception as e:
         db.session.rollback()
         logging.error(f"Error deleting product: {str(e)}")
-        logging.exception("Full error traceback:")
-        flash('خطا در حذف محصول. لطفا دوباره تلاش کنید')
+        flash('خطا در حذف محصول. لطفاً دوباره تلاش کنید')
 
     return redirect(url_for('dashboard'))
