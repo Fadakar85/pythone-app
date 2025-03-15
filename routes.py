@@ -49,12 +49,10 @@ def dashboard():
 def new_product():
     if request.method == 'POST':
         try:
-            # Get form data
             name = request.form.get('name')
             description = request.form.get('description')
             price = request.form.get('price')
 
-            # Validate required fields
             if not name or not price:
                 flash('لطفاً نام و قیمت محصول را وارد کنید')
                 return render_template('product_form.html')
@@ -66,15 +64,15 @@ def new_product():
                 return render_template('product_form.html')
 
             # Handle image upload
-            image = request.files.get('image')
             image_path = None
+            image = request.files.get('image')
             if image and image.filename:
                 image_path = save_image(image)
                 if not image_path:
-                    flash('خطا در آپلود تصویر. لطفاً دوباره تلاش کنید')
+                    flash('خطا در آپلود تصویر')
                     return render_template('product_form.html')
 
-            # Create product
+            # Create new product
             product = Product(
                 name=name,
                 description=description,
@@ -85,14 +83,13 @@ def new_product():
 
             db.session.add(product)
             db.session.commit()
-
             flash('محصول با موفقیت ایجاد شد')
             return redirect(url_for('dashboard'))
 
         except Exception as e:
             db.session.rollback()
             logging.error(f"Error creating product: {str(e)}")
-            flash('خطا در ایجاد محصول. لطفاً دوباره تلاش کنید')
+            flash('خطا در ایجاد محصول')
             return render_template('product_form.html')
 
     return render_template('product_form.html')
@@ -107,7 +104,6 @@ def edit_product(id):
 
     if request.method == 'POST':
         try:
-            # Update basic info
             product.name = request.form.get('name')
             product.description = request.form.get('description')
 
@@ -117,7 +113,7 @@ def edit_product(id):
                 flash('لطفاً قیمت معتبر وارد کنید')
                 return render_template('product_form.html', product=product)
 
-            # Handle image update
+            # Handle image upload
             image = request.files.get('image')
             if image and image.filename:
                 new_image_path = save_image(image)
@@ -128,9 +124,6 @@ def edit_product(id):
                         if os.path.exists(old_image_path):
                             os.remove(old_image_path)
                     product.image_path = new_image_path
-                else:
-                    flash('خطا در آپلود تصویر جدید')
-                    return render_template('product_form.html', product=product)
 
             db.session.commit()
             flash('محصول با موفقیت به‌روزرسانی شد')
@@ -139,7 +132,7 @@ def edit_product(id):
         except Exception as e:
             db.session.rollback()
             logging.error(f"Error updating product: {str(e)}")
-            flash('خطا در به‌روزرسانی محصول. لطفاً دوباره تلاش کنید')
+            flash('خطا در به‌روزرسانی محصول')
             return render_template('product_form.html', product=product)
 
     return render_template('product_form.html', product=product)
@@ -153,7 +146,6 @@ def delete_product(id):
         return redirect(url_for('dashboard'))
 
     try:
-        # Remove image file if exists
         if product.image_path:
             image_path = os.path.join(app.config['UPLOAD_FOLDER'], product.image_path)
             if os.path.exists(image_path):
@@ -166,6 +158,6 @@ def delete_product(id):
     except Exception as e:
         db.session.rollback()
         logging.error(f"Error deleting product: {str(e)}")
-        flash('خطا در حذف محصول. لطفاً دوباره تلاش کنید')
+        flash('خطا در حذف محصول')
 
     return redirect(url_for('dashboard'))
