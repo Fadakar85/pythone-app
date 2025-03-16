@@ -1,14 +1,16 @@
 import os
 import logging
 from flask import Flask
+from routes.payment import bp as payment_bp
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_migrate import Migrate
 from sqlalchemy.orm import DeclarativeBase
 
+
 app = Flask(__name__)
 app.secret_key = "یک_کلید_امن_و_تصادفی"  # مقدار دلخواه ولی امن
-
+app.register_blueprint(payment_bp)
 # بقیه‌ی کدهای Flask مثل مسیرها (routes) اینجا قرار می‌گیرند.
 
 if __name__ == "__main__":
@@ -25,7 +27,7 @@ class Base(DeclarativeBase):
     pass
 
 # Initialize extensions without app
-db = SQLAlchemy(model_class=Base)
+db_instance = SQLAlchemy(model_class=Base)
 login_manager = LoginManager()
 
 
@@ -36,7 +38,7 @@ def create_app():
     app.secret_key = os.environ.get("SESSION_SECRET", "B@h702600$")
 
     # Configure the database
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///C:/Users/iTeck/pythone-app/database.db"
+    app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+mysqlconnector://root:B%40h702600%24@localhost/my_database"
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
         "pool_recycle": 300,
         "pool_pre_ping": True,
@@ -50,8 +52,8 @@ def create_app():
     logging.info(f"Upload folder created at: {app.config['UPLOAD_FOLDER']}")
     logging.info(f"Database URL configured: {app.config['SQLALCHEMY_DATABASE_URI']}")
     # Initialize extensions with app
-    db.init_app(app)
-    migrate = Migrate(app, db)
+    db_instance.init_app(app)
+    migrate = Migrate(app, db_instance)
     login_manager.init_app(app)
     login_manager.login_view = "main.login"
     with app.app_context():
@@ -60,7 +62,7 @@ def create_app():
         app.register_blueprint(bp)
         # Create all database tables
         try:
-            db.create_all()  # This should come after app.init_app()
+            db_instance.create_all()  # This should come after app.init_app()
             logging.info("Database tables created successfully")
         except Exception as e:
             logging.error(f"Error creating database tables: {str(e)}")

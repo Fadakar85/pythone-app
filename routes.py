@@ -3,7 +3,7 @@ import logging
 from flask import render_template, redirect, url_for, flash, request, Blueprint
 from flask_login import login_user, logout_user, login_required, current_user
 from urllib.parse import urlparse
-from app import db
+from app_main import db_instance
 from models import User, Product, Category
 from utils import save_image
 
@@ -20,7 +20,7 @@ def index():
 
     if search:
         # جستجو در نام و توضیحات محصول
-        search_filter = db.or_(
+        search_filter = db_instance.or_(
             Product.name.ilike(f'%{search}%'),
             Product.description.ilike(f'%{search}%')
         )
@@ -103,14 +103,14 @@ def new_product():
                 category_id=category_id
             )
 
-            db.session.add(product)
-            db.session.commit()
+            db_instance.session.add(product)
+            db_instance.session.commit()
 
             flash('محصول با موفقیت ایجاد شد')
             return redirect(url_for('main.dashboard'))
 
         except Exception as e:
-            db.session.rollback()
+            db_instance.session.rollback()
             logging.error(f"Error in new_product: {str(e)}")
             flash('خطا در ایجاد محصول')
             return render_template('product_form.html')
@@ -147,12 +147,12 @@ def edit_product(id):
                             os.remove(old_image_path)
                     product.image_path = new_image_path
 
-            db.session.commit()
+            db_instance.session.commit()
             flash('محصول با موفقیت به‌روزرسانی شد')
             return redirect(url_for('main.dashboard'))
 
         except Exception as e:
-            db.session.rollback()
+            db_instance.session.rollback()
             logging.error(f"Error updating product: {str(e)}")
             flash('خطا در به‌روزرسانی محصول')
 
@@ -173,12 +173,12 @@ def delete_product(id):
             if os.path.exists(image_path):
                 os.remove(image_path)
 
-        db.session.delete(product)
-        db.session.commit()
+        db_instance.session.delete(product)
+        db_instance.session.commit()
         flash('محصول با موفقیت حذف شد')
 
     except Exception as e:
-        db.session.rollback()
+        db_instance.session.rollback()
         logging.error(f"Error deleting product: {str(e)}")
         flash('خطا در حذف محصول')
 
@@ -212,13 +212,13 @@ def init_categories():
     for cat_name in categories:
         if not Category.query.filter_by(name=cat_name).first():
             category = Category(name=cat_name)
-            db.session.add(category)
+            db_instance.session.add(category)
     
     try:
-        db.session.commit()
+        db_instance.session.commit()
         flash('دسته‌بندی‌ها با موفقیت ایجاد شدند')
     except Exception as e:
-        db.session.rollback()
+        db_instance.session.rollback()
         flash('خطا در ایجاد دسته‌بندی‌ها')
     
     return redirect(url_for('main.index'))
@@ -250,14 +250,14 @@ def signup():
 
             user = User(username=username, email=email)
             user.set_password(password)
-            db.session.add(user)
-            db.session.commit()
+            db_instance.session.add(user)
+            db_instance.session.commit()
 
             flash('ثبت‌نام با موفقیت انجام شد. اکنون می‌توانید وارد شوید')
             return redirect(url_for('main.login'))
 
         except Exception as e:
-            db.session.rollback()
+            db_instance.session.rollback()
             logging.error(f"Error in signup: {str(e)}")
             flash('خطا در ثبت‌نام. لطفاً دوباره تلاش کنید')
             return render_template('signup.html')
